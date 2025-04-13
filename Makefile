@@ -62,10 +62,14 @@ test_gcc: defer_test_gcc
 test_clang: defer_test_clang
 	./defer_test_clang
 
+# Valgrind target
+valgrind: defer_test_gcc
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./defer_test_gcc
+
 # Example running targets
 examples: $(EXAMPLE_TARGETS)
 	./file_example
 	./socket_example
 	./resource_example
 
-.PHONY: all clean test test_gcc test_clang examples 
+.PHONY: all clean test test_gcc test_clang valgrind examples 
