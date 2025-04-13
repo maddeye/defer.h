@@ -3,6 +3,9 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdalign.h>
+#ifdef _WIN32
+#include <malloc.h>
+#endif
 #include "test_common.h"
 #include "../defer.h"
 
@@ -82,12 +85,20 @@ void test_aligned_allocation(void) {
     printf("\nRunning aligned allocation test...\n");
     
     // Allocate aligned memory
+#ifdef _WIN32
+    void* ptr = _aligned_malloc(128, 16);
+#else
     void* ptr = aligned_alloc(16, 128);
+#endif
     if (!ptr) {
         print_error("Aligned allocation failed");
         return;
     }
+#ifdef _WIN32
+    defer(_aligned_free, ptr);
+#else
     defer_free(ptr);
+#endif
 
     // Verify alignment
     if ((uintptr_t)ptr % 16 != 0) {

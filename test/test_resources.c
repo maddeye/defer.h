@@ -33,7 +33,7 @@ static void free_array(void* ptr) {
     ArrayResource* arr = (ArrayResource*)ptr;
     if (arr && arr->array) {
         free(arr->array);
-        printf("Array of size %zu freed\n", arr->size);
+        printf("Array of size %lu freed\n", (unsigned long)arr->size);
     }
 }
 
@@ -76,7 +76,7 @@ void test_array_allocation(void) {
         arr.array[i] = (int)i;
     }
     
-    printf("Array initialized with values 0 to %zu\n", arr.size - 1);
+    printf("Array initialized with values 0 to %lu\n", (unsigned long)(arr.size - 1));
 }
 
 void test_file_operations(void) {
