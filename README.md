@@ -19,6 +19,28 @@ A single-header C library that implements the defer statement pattern, similar t
 3. Use `defer` or convenience macros to schedule cleanup
 
 ```c
+#include <stdio.h>
+
+#define DEFER_IMPLEMENTATION
+#include "defer.h"
+
+// Simple example: Print a message when function exits
+void print_message(void* arg) {
+    printf("Cleanup: %s\n", (char*)arg);
+}
+
+int main() {
+    char* message = "Function is ending";
+    defer(print_message, message);
+    printf("Function is running...\n");
+    return 0;
+}
+```
+
+```c
+#include <stdio.h>
+
+#define DEFER_IMPLEMENTATION
 #include "defer.h"
 
 int main() {
