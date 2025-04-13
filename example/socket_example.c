@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define DEFER_IMPLEMENTATION
 #include "../defer.h"
 
 #ifdef _WIN32
