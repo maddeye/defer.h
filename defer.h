@@ -79,6 +79,18 @@
 #ifndef DEFER_H
 #define DEFER_H
 
+#include <stdlib.h>
+
+#ifndef DEFER_FREE
+#define DEFER_FREE free
+#endif
+
+#ifndef DEFER_FCLOSE
+#define DEFER_FCLOSE fclose
+#endif
+
+
+
 // Internal structure to hold the deferred function and its argument
 typedef struct {
     void (*func)(void*);
@@ -116,12 +128,12 @@ void defer_cleanup(defer_data_t *data) {
 
 // Generic cleanup functions
 void cleanup_free(void* ptr) {
-    free(*(void**)ptr);
+    DEFER_FREE(*(void**)ptr);
 }
 
 void cleanup_fclose(void* ptr) {
     if (*(FILE**)ptr) {
-        fclose(*(FILE**)ptr);
+        DEFER_FCLOSE(*(FILE**)ptr);
     }
 }
 
