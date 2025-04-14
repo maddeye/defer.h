@@ -66,12 +66,12 @@ void test_basic_memory(void) {
 void test_basic_file(void) {
     FILE* file = fopen("build/test.txt", "w");
     if (!file) {
-        print_error("Failed to open file");
+        printf("Failed to create test file\n");
         return;
     }
     defer_fclose(file);
 
-    fprintf(file, "Basic file test\n");
+    fprintf(file, "Test content\n");
     print_success("Basic file test completed");
 }
 

@@ -96,66 +96,90 @@ typedef struct {
 } defer_data_t;
 
 // Function declarations
-void defer_cleanup(defer_data_t *data);
 void cleanup_free(void* ptr);
 void cleanup_fclose(void* ptr);
+void defer_cleanup(defer_data_t* data);
 
-// Helper macro to create unique variable names
+#define DEFER_CONCAT_(a, b) a##b
+#define DEFER_CONCAT(a, b) DEFER_CONCAT_(a, b)
+
+// MSVC-compatible implementation
 #ifdef _MSC_VER
-    #ifdef __cplusplus
-        // C++ RAII implementation for MSVC
-        class DeferScope {
-        private:
-            void (*m_func)(void*);
-            void* m_arg;
-        public:
-            DeferScope(void (*func)(void*), void* arg) : m_func(func), m_arg(arg) {}
-            ~DeferScope() { if (m_func) m_func(m_arg); }
-        };
-        #define defer(func, arg) DeferScope DEFER_CONCAT(__defer_scope_, __LINE__)(func, arg)
-    #else
-        // C implementation for MSVC
-        #define DEFER_CONCAT(a, b) a##b
-        #define DEFER_VARNAME(line) DEFER_CONCAT(__defer_data_, line)
-        #define defer(func, arg) \
-            __declspec(allocate(".CRT$XCU")) \
-            defer_data_t DEFER_VARNAME(__LINE__) = { (void (*)(void*))func, arg }
-    #endif
+    // Stack to hold cleanup functions
+    static defer_data_t* defer_stack = NULL;
+    static size_t defer_stack_size = 0;
+    static size_t defer_stack_capacity = 0;
+
+    // Function to push cleanup function onto stack
+    static void defer_push(defer_data_t data) {
+        if (defer_stack_size >= defer_stack_capacity) {
+            size_t new_capacity = defer_stack_capacity ? defer_stack_capacity * 2 : 16;
+            defer_data_t* new_stack = (defer_data_t*)realloc(defer_stack, new_capacity * sizeof(defer_data_t));
+            if (new_stack) {
+                defer_stack = new_stack;
+                defer_stack_capacity = new_capacity;
+            }
+        }
+        if (defer_stack_size < defer_stack_capacity) {
+            defer_stack[defer_stack_size++] = data;
+        }
+    }
+
+    // Function to pop and execute cleanup function
+    static void defer_pop(void) {
+        if (defer_stack_size > 0) {
+            defer_data_t data = defer_stack[--defer_stack_size];
+            if (data.func && data.arg) {
+                data.func(data.arg);
+            }
+        }
+    }
+
+    #define defer(func, arg) \
+        defer_push((defer_data_t){ (void (*)(void*))func, (void*)(arg) }); \
+        atexit(defer_pop)
+
+    #define defer_free(ptr) \
+        void* DEFER_CONCAT(__defer_ptr_, __LINE__) = (void*)(ptr); \
+        defer_push((defer_data_t){ cleanup_free, DEFER_CONCAT(__defer_ptr_, __LINE__) }); \
+        atexit(defer_pop)
+
+    #define defer_fclose(fp) \
+        FILE* DEFER_CONCAT(__defer_fp_, __LINE__) = (FILE*)(fp); \
+        defer_push((defer_data_t){ cleanup_fclose, DEFER_CONCAT(__defer_fp_, __LINE__) }); \
+        atexit(defer_pop)
 #else
-    // GCC/Clang implementation
-    #define DEFER_CONCAT_(a, b) a##b
-    #define DEFER_CONCAT(a, b) DEFER_CONCAT_(a, b)
-    #define DEFER_VARNAME(line) DEFER_CONCAT(__defer_data_, line)
+
     #define defer(func, arg) \
         __attribute__((cleanup(defer_cleanup))) \
-        defer_data_t DEFER_VARNAME(__LINE__) = { (void (*)(void*))func, arg }
+        defer_data_t DEFER_CONCAT(__defer_data_, __LINE__) = { (void (*)(void*))func, arg }
+
+    #define defer_free(ptr) defer(cleanup_free, ptr)
+    #define defer_fclose(fp) defer(cleanup_fclose, fp)
 #endif
 
-// Convenience macros for common operations
-#define defer_free(ptr) defer(cleanup_free, &(ptr))
-#define defer_fclose(fp) defer(cleanup_fclose, &(fp))
-
 #ifdef DEFER_IMPLEMENTATION
-// Implementation section - only included once
 
-// Cleanup function that gets called at scope exit
-void defer_cleanup(defer_data_t *data) {
-    if (data && data->func) {
+// Function implementations
+void cleanup_free(void* ptr) {
+    if (ptr) {
+        printf("Cleaning up free: %p\n", ptr);
+        DEFER_FREE(ptr);
+    }
+}
+
+void cleanup_fclose(void* ptr) {
+    if (ptr) {
+        DEFER_FCLOSE((FILE*)ptr);
+    }
+}
+
+void defer_cleanup(defer_data_t* data) {
+    if (data && data->func && data->arg) {
         data->func(data->arg);
     }
 }
 
-// Generic cleanup functions
-void cleanup_free(void* ptr) {
-    DEFER_FREE(*(void**)ptr);
-}
-
-void cleanup_fclose(void* ptr) {
-    if (*(FILE**)ptr) {
-        DEFER_FCLOSE(*(FILE**)ptr);
-    }
-}
-
-#endif // DEFER_IMPLEMENTATION 
+#endif // DEFER_IMPLEMENTATION
 
 #endif // DEFER_H

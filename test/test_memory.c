@@ -119,15 +119,17 @@ void test_reallocation(void) {
         print_error("Initial allocation failed");
         return;
     }
-    defer_free(ptr);
 
     // Reallocate to larger size
     void* new_ptr = realloc(ptr, 200);
     if (!new_ptr) {
+        free(ptr);  // Clean up original allocation if realloc fails
         print_error("Reallocation failed");
         return;
     }
-    ptr = new_ptr;
+    
+    // Only defer the final pointer
+    defer_free(new_ptr);
 
     print_success("Reallocation test completed");
 }

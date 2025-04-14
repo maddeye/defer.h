@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <assert.h>
 #include "test_common.h"
 #include "../defer.h"
 
@@ -221,4 +222,68 @@ void test_opengl_resources(void) {
     printf("Using texture %u for rendering\n", tex.texture_id);
     
     print_success("OpenGL resource management test completed");
+}
+
+void test_file_paths(void) {
+    char path[256];
+    snprintf(path, sizeof(path), "build%ctest.txt", PATH_SEP);
+    FILE* file = fopen(path, "w");
+    if (!file) {
+        printf("Failed to create test file\n");
+        return;
+    }
+    fprintf(file, "Test case content\n");
+    fclose(file);
+
+    // Test file path with multiple separators
+    snprintf(path, sizeof(path), "build%ctest.txt", PATH_SEP);
+    file = fopen(path, "w");
+    if (!file) {
+        printf("Failed to create test file\n");
+        return;
+    }
+    fprintf(file, "Test case content 2\n");
+    fclose(file);
+
+    // Test nonexistent directory
+    snprintf(path, sizeof(path), "nonexistent_directory%cbuild%ctest.txt", PATH_SEP, PATH_SEP);
+    file = fopen(path, "w");
+    if (file) {
+        printf("Should not be able to create file in nonexistent directory\n");
+        fclose(file);
+        return;
+    }
+}
+
+static void cleanup_int(void* ptr) {
+    int* value = (int*)ptr;
+    if (value) {
+        *value = 1;
+    }
+}
+
+void test_cases(void) {
+    // Test case 1: Basic defer usage
+    int value = 0;
+    {
+        defer(cleanup_int, &value);
+        assert(value == 0);
+    }
+    assert(value == 1);
+
+    // Test case 2: Multiple defers
+    int value1 = 0, value2 = 0;
+    {
+        defer(cleanup_int, &value1);
+        defer(cleanup_int, &value2);
+        assert(value1 == 0 && value2 == 0);
+    }
+    assert(value1 == 1 && value2 == 1);
+
+    // Test case 3: Defer in loop
+    int loop_value = 0;
+    for (int i = 0; i < 3; i++) {
+        defer(cleanup_int, &loop_value);
+    }
+    assert(loop_value == 3);
 } 

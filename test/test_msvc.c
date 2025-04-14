@@ -3,53 +3,160 @@
  * @brief MSVC-specific tests for defer.h
  */
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "test_common.h"
+
+#define DEFER_IMPLEMENTATION
 #include "../defer.h"
+
+static void cleanup1(void* arg) {
+    (void)arg;  // Unused
+    printf("Cleanup 1 executed\n");
+}
+
+static void cleanup2(void* arg) {
+    (void)arg;  // Unused
+     printf("Cleanup 2 executed\n");
+}
 
 // Test basic MSVC defer functionality
 void test_msvc_basic(void) {
-    printf("\n=== Testing MSVC Basic Defer ===\n");
-    
-    int* ptr = (int*)malloc(sizeof(int));
-    if (!ptr) {
-        print_error("Memory allocation failed");
-        return;
-    }
-    defer_free(ptr);
-    
-    *ptr = 42;
-    printf("Value before cleanup: %d\n", *ptr);
+    int dummy = 0;
+    defer(cleanup1, &dummy);
+    printf("First defer registered\n");
+
+    {  // Testing nested scope
+        int dummy2 = 0;
+        defer(cleanup2, &dummy2);
+        printf("Second defer registered in nested scope\n");
+    }  // cleanup2 should execute here
+
     print_success("Basic MSVC defer test completed");
 }
 
 // Test nested scopes with MSVC
 void test_msvc_nested(void) {
     printf("\n=== Testing MSVC Nested Scopes ===\n");
+    printf("Starting nested test...\n");
     
-    int* outer = (int*)malloc(sizeof(int));
-    if (!outer) {
-        print_error("Outer allocation failed");
-        return;
-    }
-    defer_free(outer);
-    
+    // First test: outer scope only
+    void* outer_ptr = NULL;
     {
+        printf("Testing outer scope...\n");
+        int* outer = (int*)malloc(sizeof(int));
+        if (!outer) {
+            print_error("Outer allocation failed");
+            return;
+        }
+        outer_ptr = (void*)outer;  // Save pointer for verification
+        printf("Allocated outer at %p\n", outer_ptr);
+        defer_free(outer);
+        
+        *outer = 200;
+        printf("Outer value: %d\n", *outer);
+    }  // defer_free should execute here
+    
+    // Verify that outer was freed
+    {
+        int* test = (int*)malloc(sizeof(int));
+        if (!test) {
+            print_error("Test allocation failed");
+            return;
+        }
+        printf("Allocated test at %p\n", (void*)test);
+        // If outer was properly freed, this allocation should get a different address
+        if ((void*)test == outer_ptr) {
+            print_error("Memory was not properly freed");
+            return;
+        }
+        free(test);
+    }
+    
+    // Second test: inner scope only
+    void* inner_ptr = NULL;
+    {
+        printf("Testing inner scope...\n");
         int* inner = (int*)malloc(sizeof(int));
         if (!inner) {
             print_error("Inner allocation failed");
             return;
         }
+        inner_ptr = (void*)inner;  // Save pointer for verification
+        printf("Allocated inner at %p\n", inner_ptr);
         defer_free(inner);
         
         *inner = 100;
-        printf("Inner value before cleanup: %d\n", *inner);
+        printf("Inner value: %d\n", *inner);
+    }  // defer_free should execute here
+    
+    // Third test: nested scopes
+    void* nested_outer_ptr = NULL;
+    void* nested_inner_ptr = NULL;
+    {
+        printf("Testing nested scopes...\n");
+        int* outer = (int*)malloc(sizeof(int));
+        if (!outer) {
+            print_error("Outer allocation failed");
+            return;
+        }
+        nested_outer_ptr = (void*)outer;  // Save pointer for verification
+        printf("Allocated outer at %p\n", nested_outer_ptr);
+        defer_free(outer);
+        
+        {
+            int* inner = (int*)malloc(sizeof(int));
+            if (!inner) {
+                print_error("Inner allocation failed");
+                return;
+            }
+            nested_inner_ptr = (void*)inner;  // Save pointer for verification
+            printf("Allocated inner at %p\n", nested_inner_ptr);
+            defer_free(inner);
+            
+            *inner = 100;
+            printf("Inner value: %d\n", *inner);
+        }  // defer_free should execute here for inner
+        
+        // Verify that inner was freed
+        {
+            int* test = (int*)malloc(sizeof(int));
+            if (!test) {
+                print_error("Test allocation failed");
+                return;
+            }
+            printf("Allocated test at %p\n", (void*)test);
+            // If inner was properly freed, this allocation should get a different address
+            if ((void*)test == nested_inner_ptr) {
+                print_error("Memory was not properly freed in nested scope");
+                return;
+            }
+            free(test);
+        }
+        
+        *outer = 200;
+        printf("Outer value: %d\n", *outer);
+    }  // defer_free should execute here for outer
+    
+    // Final verification of nested outer
+    {
+        int* test = (int*)malloc(sizeof(int));
+        if (!test) {
+            print_error("Test allocation failed");
+            return;
+        }
+        printf("Allocated test at %p\n", (void*)test);
+        // If outer was properly freed, this allocation should get a different address
+        if ((void*)test == nested_outer_ptr) {
+            print_error("Memory was not properly freed in nested scope");
+            return;
+        }
+        free(test);
     }
     
-    *outer = 200;
-    printf("Outer value before cleanup: %d\n", *outer);
     print_success("Nested scopes test completed");
 }
 
@@ -121,4 +228,10 @@ void run_msvc_tests(void) {
     test_msvc_errors();
     
     printf("\nMSVC tests completed\n");
+}
+
+// Entry point
+int main(void) {
+    run_msvc_tests();
+    return 0;
 } 

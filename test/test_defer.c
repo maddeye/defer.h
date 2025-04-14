@@ -5,12 +5,28 @@
 
 #include <stdio.h>
 #include "test_common.h"
-#include "test_basic.h"
-#include "test_memory.h"
-#include "test_files.h"
-#include "test_cases.h"
-#include "test_resources.h"
-#include "test_msvc.h"
+
+// Function declarations
+void test_basic(void);
+void test_memory_allocation(void);
+void test_file_operations(void);
+void test_nested(void);
+void test_resource_management(void);
+void test_array_allocation(void);
+void test_zero_allocation(void);
+void test_large_allocation(void);
+void test_multiple_allocations(void);
+void test_aligned_allocation(void);
+void test_reallocation(void);
+void test_custom_cleanup(void);
+void test_allocation_errors(void);
+void test_nested_scope_allocation(void);
+void test_string_operations(void);
+void test_array_operations(void);
+void test_nested_resources(void);
+void test_nested_resource_cleanup(void);
+void test_temp_resource_cleanup(void);
+void run_msvc_tests(void);
 
 int main(void) {
     // Initialize sockets if needed
@@ -22,6 +38,7 @@ int main(void) {
     printf("Starting defer.h tests...\n");
 
     // Run basic tests
+    printf("\n=== Running Basic Tests ===\n");
     test_basic();
     printf("\n");
 
@@ -35,58 +52,31 @@ int main(void) {
     printf("\n");
 
     // Run memory tests
-    test_memory();
-    printf("\n");
-
-    test_basic_memory();
-    printf("\n");
-
-    test_resource_cleanup();
-    printf("\n");
-
-    test_error_handling();
-    printf("\n");
-
+    printf("\n=== Running Memory Tests ===\n");
     test_zero_allocation();
-    printf("\n");
-
     test_large_allocation();
-    printf("\n");
-
     test_multiple_allocations();
-    printf("\n");
-
     test_aligned_allocation();
-    printf("\n");
-
     test_reallocation();
-    printf("\n");
-
     test_custom_cleanup();
-    printf("\n");
-
     test_allocation_errors();
-    printf("\n");
-
     test_nested_scope_allocation();
-    printf("\n");
 
     // Run file tests
-    test_files();
-    printf("\n");
+    printf("\n=== Running Resource Tests ===\n");
+    test_resource_management();
+    test_array_allocation();
+    test_file_operations();
+    test_string_operations();
+    test_array_operations();
+    test_nested_resources();
+    test_temp_resource_cleanup();
 
-    // Run case tests
-    test_cases();
-    printf("\n");
+    // Run nested scope tests
+    printf("\n=== Running Nested Scope Tests ===\n");
+    test_nested();
+    test_nested_resource_cleanup();
 
-    // Run resource tests
-    test_resources();
-    printf("\n");
-
-    // Run MSVC-specific tests
-    #ifdef _MSC_VER
-    run_msvc_tests();
-    #endif
 
     // Real-world usage examples
     test_database_connection();

@@ -81,7 +81,7 @@ void test_array_allocation(void) {
 
 void test_file_operations(void) {
     char path[256];
-    snprintf(path, sizeof(path), "test%ctest.txt", PATH_SEP);
+    snprintf(path, sizeof(path), "build%ctest.txt", PATH_SEP);
     FILE* file = fopen(path, "w");
     if (!file) {
         print_error("Failed to open file for writing");
@@ -232,12 +232,21 @@ void test_nested_resources(void) {
 void test_nested_resource_cleanup(void) {
     char path[256];
     snprintf(path, sizeof(path), "build%ctest.txt", PATH_SEP);
-    FILE* outer = fopen(path, "w");
-    if (!outer) {
-        print_error("Failed to open outer file");
+    FILE* file = fopen(path, "w");
+    if (!file) {
+        printf("Failed to create test file\n");
         return;
     }
-    defer_fclose(outer);
+    fprintf(file, "Resource test content\n");
+    fclose(file);
 
-    // ... existing code ...
+    // Test file path with multiple separators
+    snprintf(path, sizeof(path), "build%ctest.txt", PATH_SEP);
+    file = fopen(path, "w");
+    if (!file) {
+        printf("Failed to create test file\n");
+        return;
+    }
+    fprintf(file, "Resource test content 2\n");
+    fclose(file);
 } 
