@@ -89,8 +89,6 @@
 #define DEFER_FCLOSE fclose
 #endif
 
-
-
 // Internal structure to hold the deferred function and its argument
 typedef struct {
     void (*func)(void*);
@@ -103,18 +101,39 @@ void cleanup_free(void* ptr);
 void cleanup_fclose(void* ptr);
 
 // Helper macro to create unique variable names
-#define DEFER_CONCAT_(a, b) a##b
-#define DEFER_CONCAT(a, b) DEFER_CONCAT_(a, b)
-
-// Macro to create a defer statement with unique variable names
-#define defer(func, arg) \
-    __attribute__((cleanup(defer_cleanup))) \
-    defer_data_t DEFER_CONCAT(__defer_data_, __LINE__) = { (void (*)(void*))func, arg }
+#ifdef _MSC_VER
+    #ifdef __cplusplus
+        // C++ RAII implementation for MSVC
+        class DeferScope {
+        private:
+            void (*m_func)(void*);
+            void* m_arg;
+        public:
+            DeferScope(void (*func)(void*), void* arg) : m_func(func), m_arg(arg) {}
+            ~DeferScope() { if (m_func) m_func(m_arg); }
+        };
+        #define defer(func, arg) DeferScope DEFER_CONCAT(__defer_scope_, __LINE__)(func, arg)
+    #else
+        // C implementation for MSVC
+        #define DEFER_CONCAT(a, b) a##b
+        #define DEFER_VARNAME(line) DEFER_CONCAT(__defer_data_, line)
+        #define defer(func, arg) \
+            __declspec(allocate(".CRT$XCU")) \
+            defer_data_t DEFER_VARNAME(__LINE__) = { (void (*)(void*))func, arg }
+    #endif
+#else
+    // GCC/Clang implementation
+    #define DEFER_CONCAT_(a, b) a##b
+    #define DEFER_CONCAT(a, b) DEFER_CONCAT_(a, b)
+    #define DEFER_VARNAME(line) DEFER_CONCAT(__defer_data_, line)
+    #define defer(func, arg) \
+        __attribute__((cleanup(defer_cleanup))) \
+        defer_data_t DEFER_VARNAME(__LINE__) = { (void (*)(void*))func, arg }
+#endif
 
 // Convenience macros for common operations
 #define defer_free(ptr) defer(cleanup_free, &(ptr))
 #define defer_fclose(fp) defer(cleanup_fclose, &(fp))
-
 
 #ifdef DEFER_IMPLEMENTATION
 // Implementation section - only included once
@@ -138,6 +157,5 @@ void cleanup_fclose(void* ptr) {
 }
 
 #endif // DEFER_IMPLEMENTATION 
-
 
 #endif // DEFER_H

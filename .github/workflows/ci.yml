@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        compiler: [gcc, clang]
+        exclude:
+          - os: windows-latest
+            compiler: clang  # Skip Clang on Windows as it's not commonly available
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y valgrind gcc clang
+
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install gcc
+
+    - name: Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install mingw
+        choco install visualstudio2019buildtools
+        choco install visualstudio2019-workload-vctools
+
+    - name: Set up MSVC environment (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+        echo "::set-env name=PATH::%PATH%"
+
+    - name: Build and test (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        if [ "${{ matrix.compiler }}" == "gcc" ]; then
+          CC=gcc make test_gcc
+        else
+          CC=clang make test_clang
+        fi
+
+    - name: Build and test (Windows GCC)
+      if: matrix.os == 'windows-latest' && matrix.compiler == 'gcc'
+      run: |
+        make test_gcc
+
+    - name: Build and test (Windows MSVC)
+      if: matrix.os == 'windows-latest' && matrix.compiler == 'gcc'
+      run: |
+        make test_msvc
+
+    - name: Run Valgrind
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
+      run: |
+        make valgrind
+
+    - name: Build examples
+      run: |
+        make examples 

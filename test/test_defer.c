@@ -3,7 +3,14 @@
  * @brief Main test file for defer.h
  */
 
+#include <stdio.h>
 #include "test_common.h"
+#include "test_basic.h"
+#include "test_memory.h"
+#include "test_files.h"
+#include "test_cases.h"
+#include "test_resources.h"
+#include "test_msvc.h"
 
 int main(void) {
     // Initialize sockets if needed
@@ -12,9 +19,9 @@ int main(void) {
         return 1;
     }
 
-    printf("Running defer tests...\n\n");
+    printf("Starting defer.h tests...\n");
 
-    // Basic functionality tests
+    // Run basic tests
     test_basic();
     printf("\n");
 
@@ -27,7 +34,10 @@ int main(void) {
     test_multiple_defers();
     printf("\n");
 
-    // Resource management tests
+    // Run memory tests
+    test_memory();
+    printf("\n");
+
     test_basic_memory();
     printf("\n");
 
@@ -37,7 +47,6 @@ int main(void) {
     test_error_handling();
     printf("\n");
 
-    // Memory tests
     test_zero_allocation();
     printf("\n");
 
@@ -62,6 +71,23 @@ int main(void) {
     test_nested_scope_allocation();
     printf("\n");
 
+    // Run file tests
+    test_files();
+    printf("\n");
+
+    // Run case tests
+    test_cases();
+    printf("\n");
+
+    // Run resource tests
+    test_resources();
+    printf("\n");
+
+    // Run MSVC-specific tests
+    #ifdef _MSC_VER
+    run_msvc_tests();
+    #endif
+
     // Real-world usage examples
     test_database_connection();
     printf("\n");
@@ -75,6 +101,6 @@ int main(void) {
     test_opengl_resources();
     printf("\n");
 
-    printf("All tests completed.\n");
+    printf("\nAll tests completed.\n");
     return 0;
 } 
