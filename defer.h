@@ -105,49 +105,7 @@ void defer_cleanup(defer_data_t* data);
 
 // MSVC-compatible implementation
 #ifdef _MSC_VER
-    // Stack to hold cleanup functions
-    static defer_data_t* defer_stack = NULL;
-    static size_t defer_stack_size = 0;
-    static size_t defer_stack_capacity = 0;
-
-    // Function to push cleanup function onto stack
-    static void defer_push(defer_data_t data) {
-        if (defer_stack_size >= defer_stack_capacity) {
-            size_t new_capacity = defer_stack_capacity ? defer_stack_capacity * 2 : 16;
-            defer_data_t* new_stack = (defer_data_t*)realloc(defer_stack, new_capacity * sizeof(defer_data_t));
-            if (new_stack) {
-                defer_stack = new_stack;
-                defer_stack_capacity = new_capacity;
-            }
-        }
-        if (defer_stack_size < defer_stack_capacity) {
-            defer_stack[defer_stack_size++] = data;
-        }
-    }
-
-    // Function to pop and execute cleanup function
-    static void defer_pop(void) {
-        if (defer_stack_size > 0) {
-            defer_data_t data = defer_stack[--defer_stack_size];
-            if (data.func && data.arg) {
-                data.func(data.arg);
-            }
-        }
-    }
-
-    #define defer(func, arg) \
-        defer_push((defer_data_t){ (void (*)(void*))func, (void*)(arg) }); \
-        atexit(defer_pop)
-
-    #define defer_free(ptr) \
-        void* DEFER_CONCAT(__defer_ptr_, __LINE__) = (void*)(ptr); \
-        defer_push((defer_data_t){ cleanup_free, DEFER_CONCAT(__defer_ptr_, __LINE__) }); \
-        atexit(defer_pop)
-
-    #define defer_fclose(fp) \
-        FILE* DEFER_CONCAT(__defer_fp_, __LINE__) = (FILE*)(fp); \
-        defer_push((defer_data_t){ cleanup_fclose, DEFER_CONCAT(__defer_fp_, __LINE__) }); \
-        atexit(defer_pop)
+    #error "MSVC is not supported. This library requires GCC or Clang with __attribute__((cleanup)) support."
 #else
 
     #define defer(func, arg) \

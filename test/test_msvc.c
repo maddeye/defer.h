@@ -26,12 +26,12 @@ static void cleanup2(void* arg) {
 // Test basic MSVC defer functionality
 void test_msvc_basic(void) {
     int dummy = 0;
-    defer(cleanup1, &dummy);
+    defer(cleanup1(&dummy));
     printf("First defer registered\n");
 
     {  // Testing nested scope
         int dummy2 = 0;
-        defer(cleanup2, &dummy2);
+        defer(cleanup2(&dummy2));
         printf("Second defer registered in nested scope\n");
     }  // cleanup2 should execute here
 

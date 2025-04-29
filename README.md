@@ -1,5 +1,9 @@
 # defer.h
 
+> [!WARNING]
+> This library is not compatible with MSVC right now.
+> If you wanna help, open a PR.
+
 A single-header C library that implements the defer statement pattern, similar to Go's `defer` statement. This allows you to schedule cleanup code to run when the current scope exits.
 
 ## Features
